@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cookie Clicker</string>
+    <string name="cookies_label">cookies</string>
+    <string name="per_second_label">per second</string>
+    <string name="upgrades_title">UPGRADES</string>
+    <string name="notification_channel_id">cookie_sync</string>
+    <string name="notification_channel_name">Cookie Sync</string>
+    <string name="notification_title">Cookie Clicker</string>
+    <string name="notification_text">Syncing cookie data…</string>
+</resources>

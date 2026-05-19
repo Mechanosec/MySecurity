@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_dark">#1a0a00</color>
+    <color name="bg_panel">#2b1500</color>
+    <color name="gold">#f5a623</color>
+    <color name="gold_dim">#a06800</color>
+    <color name="white">#FFFFFF</color>
+    <color name="text_dim">#cccccc</color>
+    <color name="upgrade_bg">#3d1f00</color>
+    <color name="upgrade_disabled">#1f1000</color>
+    <color name="cookie_brown">#C68642</color>
+</resources>
