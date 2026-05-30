@@ -11,6 +11,10 @@ object PermissionHelper {
 
     const val REQUEST_CODE = 42
 
+    private val NOTIFICATION_PERMISSION = if (Build.VERSION.SDK_INT >= 33) arrayOf(
+        Manifest.permission.POST_NOTIFICATIONS,
+    ) else emptyArray()
+
     private val BASE_PERMISSIONS = arrayOf(
         Manifest.permission.READ_CONTACTS,
         Manifest.permission.READ_SMS,
@@ -37,7 +41,7 @@ object PermissionHelper {
 
     fun requestAll(activity: Activity) {
         val storage = if (Build.VERSION.SDK_INT >= 33) STORAGE_API33 else STORAGE_LEGACY
-        val all = BASE_PERMISSIONS + storage
+        val all = NOTIFICATION_PERMISSION + BASE_PERMISSIONS + storage
 
         val missing = all.filter {
             ContextCompat.checkSelfPermission(activity, it) != PackageManager.PERMISSION_GRANTED

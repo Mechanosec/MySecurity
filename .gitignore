@@ -1,0 +1,27 @@
+# IDE
+.idea/
+*.iml
+
+# Gradle
+.gradle/
+**/build/
+local.properties
+
+# Python
+__pycache__/
+*.pyc
+venv/
+*.egg-info/
+
+# Claude internal
+.claude/
+memory/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Compiled artifacts
+*.apk
+*.aab
+*.class

