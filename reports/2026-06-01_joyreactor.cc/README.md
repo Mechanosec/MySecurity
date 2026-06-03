@@ -29,7 +29,7 @@
 | 6   | Captcha bypass через мобільний субдомен `m.joyreactor.cc`            | Medium | Підтверджено  |
 | 7   | Авторизація без підтвердження email (`active: false`)                | Low    | Підтверджено  |
 | 8   | Неактивні акаунти можуть голосувати — накрутка рейтингу              | Medium | Підтверджено  |
-| 9   | SSRF через `post` mutation — сервер робить запити до довільних URL   | Critical | Підтверджено  |
+| 9   | SSRF через `post` mutation — file:// redirect bypass, port 3000/3001 non-HTTP відкриті, Redis/MySQL доступні | Critical | Поглиблено  |
 | 10  | Stored HTML Injection — `<a href>` рендериться без санітизації в постах | High  | Підтверджено  |
 | 11  | Stored XSS у полях профілю `fullName`/`about` — HTML зберігається без санітизації | High | Підтверджено (рендер не підтверджено) |
 | 12  | IDOR розширений — приватні поля адмін-акаунтів через `selfOrAdmin: true` | Medium | Підтверджено |
