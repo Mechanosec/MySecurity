@@ -59,7 +59,10 @@ def upload(label, filename, content, content_type="application/octet-stream", de
 
     t0 = time.monotonic()
     try:
-        r = session.post(URL, data=data, files=fdict, timeout=20, headers={"Content-Type": None})
+        r = session.post(URL, data=data, files=fdict, timeout=20, headers={
+            "Content-Type": None,
+            "X-Requested-With": "XMLHttpRequest",
+        })
         elapsed = (time.monotonic() - t0) * 1000
         raw_resp = r.text
         try:
